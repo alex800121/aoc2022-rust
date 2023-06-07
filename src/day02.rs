@@ -1,3 +1,5 @@
+use project_root::get_project_root;
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum Rps {
     Rock,
@@ -75,7 +77,7 @@ fn calc_score ((op, my): (Rps, Rps)) -> usize {
 }
 
 pub fn run(input: usize) {
-    let input = std::fs::read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let x: Vec<(&str, &str)> = input.lines().map(|y| y.split_once(' ').unwrap()).collect();
     let day1: Vec<usize> = x.iter().map(|x| calc_score(strategy1(x))).collect();
     let day2: Vec<usize> = x.iter().map(|x| calc_score(strategy2(x))).collect();

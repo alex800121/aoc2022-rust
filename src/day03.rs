@@ -1,3 +1,5 @@
+use project_root::get_project_root;
+
 fn half(list: &str) -> (&str, &str) {
     let len = list.len();
     let l = len / 2;
@@ -25,7 +27,7 @@ fn first_recur_list(list: &[&str]) -> u8 {
 }
 
 pub fn run(input: usize) {
-    let input = std::fs::read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let day3a: usize = input.lines().map(|x| convert(first_recur(half(x)))).sum();
     let day3b: usize = input.lines().collect::<Vec<_>>().chunks(3).map(|x| convert(first_recur_list(x))).sum();
     println!("day3a: {:?}", day3a);

@@ -1,7 +1,7 @@
-use std::fs::read_to_string;
+use project_root::get_project_root;
 
 pub fn run(input: usize) {
-    let input = read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let day1 = input.split("\n\n").map(|x| x.lines().map(|y| y.parse::<u32>().unwrap()).sum::<u32>());
     let max_three = &mut [0; 4];
     for i in day1.into_iter() {

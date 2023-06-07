@@ -1,3 +1,5 @@
+use project_root::get_project_root;
+
 fn fully_contains(list: &[usize]) -> bool {
     ((list[0]..=list[1]).contains(&list[2]) && (list[0]..=list[1]).contains(&list[3])) ||
     ((list[2]..=list[3]).contains(&list[0]) && (list[2]..=list[3]).contains(&list[1]))
@@ -7,7 +9,7 @@ fn overlaps(list: &[usize]) -> bool {
     ((list[2]..=list[3]).contains(&list[0]) || (list[2]..=list[3]).contains(&list[1]))
 }
 pub fn run(input: usize) {
-    let input = std::fs::read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let day4: Vec<_> = 
         input.lines()
             .map(|x| x.split(&['-', ','])

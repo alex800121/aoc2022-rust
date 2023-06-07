@@ -1,3 +1,4 @@
+use project_root::get_project_root;
 use std::collections::HashMap;
 use nom::{IResult, bytes, character::complete::space0};
 
@@ -66,7 +67,7 @@ fn interpret2(ins: &Instruction, x: &mut HashMap<usize, Vec<char>>) {
 }
 
 pub fn run(input: usize) {
-    let input = std::fs::read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let (crates, instructions) = input.split_once("\n\n").unwrap();
     let instructions: Vec<_> = instructions.lines().map(|x| instructions_parser(x).unwrap().1).collect();
     let mut crates = to_crates(crates);

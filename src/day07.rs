@@ -1,5 +1,6 @@
 use std::{collections::HashMap, slice::IterMut};
 use nom::{IResult, multi, bytes::complete, character, branch, combinator};
+use project_root::get_project_root;
 
 type Tree = HashMap<String, FS>;
 type Commands<'a> = Vec<Command<'a>>;
@@ -126,7 +127,7 @@ fn calc_dir_size(tree: &Tree, acc: &mut Vec<usize>) -> usize {
 }
 
 pub fn run(input: usize) {
-    let input = std::fs::read_to_string(format!("../input/input{:02}.txt", input)).unwrap();
+    let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let (_, mut commands) = parse_commands(&input).unwrap();
     let mut tree: Tree = HashMap::new();
     let mut commands = commands.iter_mut();
