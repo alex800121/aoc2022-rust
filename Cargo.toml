@@ -13,3 +13,4 @@ paste = "1.0"
 aoc-macro = { path = "aoc-macro" }
 nom = "7.1"
 project-root = "0.2"
+num = "0.4"

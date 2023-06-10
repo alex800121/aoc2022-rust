@@ -38,7 +38,7 @@ pub fn run(input: usize) {
         if range.contains(&(x as isize % 40)) {
             '#'
         } else {
-            '.'
+            ' '
         }
     }).collect::<Vec<_>>().chunks(40).for_each(|x| {
         x.iter().for_each(|y| print!("{}", y));
