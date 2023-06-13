@@ -59,52 +59,6 @@ impl<T: PartialEq + Eq + PartialOrd + Ord> PartialOrd for Mlist<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
-    // fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-    //     use Mlist::*;
-    //     use Ordering::*;
-    //     match (self, other) {
-    //         (Node(a), Node(b)) => a.partial_cmp(b),
-    //         (List(a), List(b)) => {
-    //             let mut a = a.iter();
-    //             let mut b = b.iter();
-    //             loop {
-    //                 let (x, y) = (a.next(), b.next());
-    //                 match (x, y) {
-    //                     (None, None) => { return Some(Equal); },
-    //                     (None, Some(_)) => { return Some(Less); },
-    //                     (Some(_), None) => { return Some(Greater); },
-    //                     (Some(x), Some(y)) => match x.partial_cmp(y) {
-    //                         Some(Equal) => { continue; },
-    //                         x => { return x; },
-    //                     }
-    //                 }
-    //             }
-    //         },
-    //         (a, List(b)) => {
-    //             let mut b = b.iter();
-    //             match (b.next(), b.next()) {
-    //                 (Some(x), None) => a.partial_cmp(x),
-    //                 (None, _) => Some(Greater),
-    //                 (Some(x), Some(_)) => match a.partial_cmp(x) {
-    //                     Some(Equal) => Some(Less),
-    //                     z => z,
-    //                 }
-    //             }
-    //         },
-    //         (List(a), b) => {
-    //             let mut a = a.iter();
-    //             match (a.next(), a.next()) {
-    //                 (Some(x), None) => x.partial_cmp(b),
-    //                 (None, _) => Some(Greater),
-    //                 (Some(x), Some(_)) => match x.partial_cmp(b) {
-    //                     Some(Equal) => Some(Less),
-    //                     z => z,
-    //                 }
-    //             }
-    //         },
-    //     }
-    //     
-    // }
 }
 
 impl<T: PartialEq + Eq + PartialOrd + Ord> Ord for Mlist<T> {
@@ -153,20 +107,6 @@ impl<T: PartialEq + Eq + PartialOrd + Ord> Ord for Mlist<T> {
             },
         }
         
-    }
-}
-
-impl<T: Sum + Copy> Mlist<T> {
-    fn sum(&self) -> T {
-        use Mlist::*;
-        let mut v = Vec::new();
-        match self {
-            Node(t) => { v.push(*t); },
-            List(l) => {
-                for i in l { v.push(i.sum()); }
-            },
-        }
-        v.into_iter().sum()
     }
 }
 
