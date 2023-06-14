@@ -1,20 +1,39 @@
+use std::hash::Hash;
 use std::ops::Range;
+use std::collections::HashSet;
 
 pub trait EucVec {
     fn overlap(&self, other: &Self) -> Option<Self> where Self: Sized;
-    fn subtract(&self, other: &Self) -> Self;
+    fn subtract(&self, other: &Self) -> HashSet<Self> where Self: Sized + Hash;
     fn union(&self, other: &Self) -> Self;
 }
 
-impl<Idx: Copy, const N: usize> EucVec for &[Range<Idx>; N] {
+impl<Idx: Copy + Ord + Hash, const N: usize> EucVec for [Range<Idx>; N] {
     fn overlap(&self, other: &Self) -> Option<Self>  {
-        for range in self.iter() {
-
+        let zipper = self.iter().zip(other);
+        let mut output: [Range<Idx>; N] = self.clone();
+        for (i, (a, b)) in zipper.enumerate() {
+            let x = a.start.max(b.start);
+            let y = a.end.min(b.end);
+            if x >= y {
+                return None;
+            } else {
+                output[i] = x..y;
+            }
         }
-        todo!()
+        Some(output)
     }
 
-    fn subtract(&self, other: &Self) -> Self {
+    fn subtract(&self, other: &Self) -> HashSet<Self> {
+        let mut output: HashSet<Self> = HashSet::new();
+        if let Some(other) = self.overlap(other) {
+            for i in 0..N {
+                
+            }
+        } else {
+            output.insert(self.clone());
+            return output;
+        }
         todo!()
     }
 
