@@ -1,6 +1,6 @@
 use project_root::get_project_root;
 use nom::{ IResult, character::complete::char, sequence::delimited, branch::alt, multi::separated_list0 };
-use std::{cmp::Ordering, iter::Sum, fmt::Display};
+use std::{cmp::Ordering, fmt::Display};
 
 #[derive(Debug, Clone)]
 enum Mlist<T> {

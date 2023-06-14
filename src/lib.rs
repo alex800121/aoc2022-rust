@@ -1,3 +1,28 @@
+use std::ops::Range;
+
+pub trait EucVec {
+    fn overlap(&self, other: &Self) -> Option<Self> where Self: Sized;
+    fn subtract(&self, other: &Self) -> Self;
+    fn union(&self, other: &Self) -> Self;
+}
+
+impl<Idx: Copy, const N: usize> EucVec for &[Range<Idx>; N] {
+    fn overlap(&self, other: &Self) -> Option<Self>  {
+        for range in self.iter() {
+
+        }
+        todo!()
+    }
+
+    fn subtract(&self, other: &Self) -> Self {
+        todo!()
+    }
+
+    fn union(&self, other: &Self) -> Self {
+        todo!()
+    }
+}
+
 pub trait Transpose {
     fn transpose(&mut self) -> Self;
 }

@@ -5,7 +5,33 @@ type Ix = (isize, isize);
 type Wall = HashSet<Ix>;
 
 fn drop_sand(wall: &mut Wall, start: &Ix, stop: impl Fn(&Ix) -> bool) -> usize {
-    todo!()
+    let mut sand_count = 0;
+    let mut next_sand = *start;
+    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+    loop {
+        if next_sand.1 > maxy {
+            sand_count += 1;
+            wall.insert(next_sand);
+            if stop(&next_sand) { break; }
+            next_sand = *start;
+            continue;
+        } else if !wall.contains(&(next_sand.0, next_sand.1 + 1)) {
+            next_sand = (next_sand.0, next_sand.1 + 1);
+        } else if !wall.contains(&(next_sand.0 - 1, next_sand.1 + 1)) {
+            next_sand = (next_sand.0 - 1, next_sand.1 + 1);
+        } else if !wall.contains(&(next_sand.0 + 1, next_sand.1 + 1)) {
+            next_sand = (next_sand.0 + 1, next_sand.1 + 1);
+        } else {
+            sand_count += 1;
+            wall.insert(next_sand);
+            if stop(&next_sand) { break; }
+            next_sand = *start;
+            continue;
+        }
+        if stop(&next_sand) { break; }
+    }
+    // println!("{}", draw_wall(wall));
+    sand_count
 }
 
 fn build_wall(wall: &mut Wall, instruction: &[Ix]) {
@@ -23,24 +49,24 @@ fn build_wall(wall: &mut Wall, instruction: &[Ix]) {
     }
 }
 
-fn draw_wall(wall: &Wall) -> String {
-    let minx = wall.iter().min_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
-    let maxx = wall.iter().max_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
-    let miny = wall.iter().min_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
-    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
-    let mut s = String::new();
-    for y in miny..=maxy {
-        for x in minx..=maxx {
-            if wall.contains(&(x, y)) {
-                s.push('#');
-            } else {
-                s.push(' ');
-            }
-        }
-        s.push('\n');
-    }
-    s
-}
+// fn draw_wall(wall: &Wall) -> String {
+//     let minx = wall.iter().min_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
+//     let maxx = wall.iter().max_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
+//     let miny = wall.iter().min_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+//     let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+//     let mut s = String::new();
+//     for y in miny..=maxy {
+//         for x in minx..=maxx {
+//             if wall.contains(&(x, y)) {
+//                 s.push('#');
+//             } else {
+//                 s.push(' ');
+//             }
+//         }
+//         s.push('\n');
+//     }
+//     s
+// }
 
 pub fn run(input: usize) {
     let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap().trim().to_owned();
@@ -55,5 +81,12 @@ pub fn run(input: usize) {
         .collect();
     let mut wall: Wall = HashSet::new();
     input.iter().for_each(|x| { build_wall(&mut wall, x); });
-    dbg!(wall);
+    // println!("{}", draw_wall(&wall));
+    // dbg!(wall);
+    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+    // dbg!(maxy);
+    let n = drop_sand(&mut wall.clone(), &(500, 0), |x| x.1 >= maxy);
+    println!("day14a: {}", n);
+    let n = drop_sand(&mut wall, &(500, 0), |x| x == &(500, 0));
+    println!("day14b: {}", n);
 }
