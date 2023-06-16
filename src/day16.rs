@@ -11,13 +11,27 @@ fn parse_valve(input: &str) -> IResult<&str, ValveMap> {
     let mut valves: HashSet<Rc<str>> = HashSet::new();
     for i in input {
         let (i, valve_name) = delimited(tag("Valve "), take(2usize), tag(" has flow rate="))(i)?;
-            v.clone()valves.insert(Rc::from(valve_name.to_owned()));
+        let valve_name = if let Some(v) = valves.get(valve_name) {
+            v.clone()
+        } else {
+            let v: Rc<str> = Rc::from(valve_name[0..2].to_owned());
+            valves.insert(v.clone());
+            v
+        };
         let (i, flow_rate) = take_while(|x: char| x.is_ascii_digit())(i)?;
         let flow_rate = flow_rate.parse().unwrap();
         let (_, tunnels) = preceded(alt((tag("; tunnels lead to valves "), (tag("; tunnel leads to valve ")))), separated_list0(tag(", "), take(2usize)))(i)?;
-        tunnels.iter().for_each(|x| {valves.insert(Rc::from(x.to_owned())); });
-        let tunnels = tunnels.into_iter().map(|x| (Rc::from(x[0..2].to_owned()), 1));
-        output.insert(Rc::from(valve_name[0..2].to_owned()), (HashMap::from_iter(tunnels), flow_rate));
+        // tunnels.iter().for_each(|x| {valves.insert(Rc::from(x.to_owned())); });
+        let tunnels = tunnels.into_iter().map(|x| {
+            if let Some(t) = valves.get(x) {
+                (t.clone(), 1)
+            } else {
+                let t: Rc<str> = Rc::from(x[0..2].to_owned());
+                valves.insert(t.clone());
+                (t, 1)
+            }
+        });
+        output.insert(valve_name, (HashMap::from_iter(tunnels), flow_rate));
     }
     dbg!(valves);
     Ok(("", output))
