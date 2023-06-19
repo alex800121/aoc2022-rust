@@ -1,6 +1,22 @@
 use std::hash::Hash;
 use std::ops::Range;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
+
+pub fn bfs<I: Eq + Hash + Clone, U: Copy + Eq + Hash>(
+    mut starts: HashMap<I, U>,
+    ends: impl Fn(&HashMap<I, U>) -> bool, 
+    mut nexts: impl FnMut(&(I, U), &mut HashMap<I, U>) -> HashMap<I, U>,
+) -> HashMap<I, U> {
+    let mut results = HashMap::from_iter(starts.clone().into_iter());
+    let mut next_starts = HashMap::new();
+    while !ends(&starts) {
+        for i in starts.drain() {
+            next_starts.extend(nexts(&i, &mut results));
+        }
+        starts.extend(next_starts.drain());
+    }
+    results
+}
 
 pub trait EucVec {
     fn overlap(&self, other: &Self) -> Option<Self> where Self: Sized;
@@ -207,13 +223,13 @@ pub fn zip_with<T, S, U, F>(a: Vec<T>, b: Vec<S>, f: F) -> Vec<U>
 }
 
 pub trait Enum where Self: Sized {
-    fn from_enum(&self) -> isize;
+    fn to_int(&self) -> isize;
     fn to_enum(n: isize) -> Self;
     fn succ(&self) -> Self {
-        Self::to_enum(self.from_enum() + 1)
+        Self::to_enum(self.to_int() + 1)
     }
     fn pred(&self) -> Self {
-        Self::to_enum(self.from_enum() - 1)
+        Self::to_enum(self.to_int() - 1)
     }
 }
 
@@ -225,7 +241,7 @@ pub enum Direction {
 }
 
 impl Enum for Direction {
-    fn from_enum(&self) -> isize {
+    fn to_int(&self) -> isize {
         match self {
             Direction::North => 0,
             Direction::East => 1,
@@ -249,7 +265,7 @@ pub enum Turn {
 }
 
 impl Enum for Turn {
-    fn from_enum(&self) -> isize {
+    fn to_int(&self) -> isize {
         match self {
             Turn::Right => 0,
             Turn::Left => 1,

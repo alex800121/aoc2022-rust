@@ -3,7 +3,7 @@ use aoc2022::zip_with;
 use project_root::get_project_root;
 use std::collections::HashSet;
 
-fn visible(input: &mut Vec<Vec<isize>>, acc: &mut HashSet<(usize, usize)>) {
+fn visible(input: &mut [Vec<isize>], acc: &mut HashSet<(usize, usize)>) {
     let mut max_height;
     for (i, row) in input.iter().enumerate() {
         max_height = -1;
@@ -21,7 +21,7 @@ fn visible(input: &mut Vec<Vec<isize>>, acc: &mut HashSet<(usize, usize)>) {
             }
         }
     }
-    let transposed = input.clone().transpose();
+    let transposed = input.to_owned().transpose();
     for (i, row) in transposed.iter().enumerate() {
         max_height = -1;
         for (j, cell) in row.iter().enumerate() {
@@ -59,13 +59,13 @@ fn row_scenic_score(input: &[isize]) -> Vec<usize> {
     v
 }
 
-fn scenic_score(input: &mut Vec<Vec<isize>>) -> Vec<Vec<usize>> {
+fn scenic_score(input: &mut [Vec<isize>]) -> Vec<Vec<usize>> {
     let s1 = input.iter().map(|x| row_scenic_score(x)).collect::<Vec<_>>();
     input.iter_mut().for_each(|x| x.reverse());
     let mut s2 = input.iter().map(|x| row_scenic_score(x)).collect::<Vec<_>>();
     s2.iter_mut().for_each(|x| x.reverse());
     input.iter_mut().for_each(|x| x.reverse());
-    let mut input = input.clone().transpose();
+    let mut input = input.to_owned().transpose();
     let mut s3 = input.iter().map(|x| row_scenic_score(x)).collect::<Vec<_>>();
     let s3 = s3.transpose();
     input.iter_mut().for_each(|x| x.reverse());

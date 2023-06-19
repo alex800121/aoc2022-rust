@@ -49,24 +49,25 @@ fn build_wall(wall: &mut Wall, instruction: &[Ix]) {
     }
 }
 
-// fn draw_wall(wall: &Wall) -> String {
-//     let minx = wall.iter().min_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
-//     let maxx = wall.iter().max_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
-//     let miny = wall.iter().min_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
-//     let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
-//     let mut s = String::new();
-//     for y in miny..=maxy {
-//         for x in minx..=maxx {
-//             if wall.contains(&(x, y)) {
-//                 s.push('#');
-//             } else {
-//                 s.push(' ');
-//             }
-//         }
-//         s.push('\n');
-//     }
-//     s
-// }
+#[allow(dead_code)]
+fn draw_wall(wall: &Wall) -> String {
+    let minx = wall.iter().min_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
+    let maxx = wall.iter().max_by(|&a, &b| a.0.cmp(&b.0)).unwrap().0;
+    let miny = wall.iter().min_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+    let mut s = String::new();
+    for y in miny..=maxy {
+        for x in minx..=maxx {
+            if wall.contains(&(x, y)) {
+                s.push('#');
+            } else {
+                s.push(' ');
+            }
+        }
+        s.push('\n');
+    }
+    s
+}
 
 pub fn run(input: usize) {
     let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap().trim().to_owned();

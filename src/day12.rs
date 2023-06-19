@@ -1,37 +1,29 @@
 use project_root::get_project_root;
 use std::collections::{ HashSet, HashMap };
+use aoc2022::bfs;
 
 type Ix = (isize, isize);
 
-fn bfs<I: std::fmt::Debug + Eq + std::hash::Hash>(starts: &mut HashSet<I>, ends: impl Fn(&I) -> bool, nexts: impl Fn(&I) -> HashSet<I>) -> usize {
-    let mut visited: HashSet<I> = HashSet::new();
-    let mut length = 0;
-    loop {
-        let mut next_starts = HashSet::new();
-        for i in starts.drain() {
-            if ends(&i) {
-                return length; 
-            } else {
-                next_starts.extend(nexts(&i).drain().filter(|x| {
-                    !visited.contains(x)
-                }));
-                visited.insert(i);
-            }
-        }
-        starts.extend(next_starts.drain());
-        length += 1;
-    }
-}
-
-fn next_visits(height_map: &HashMap<Ix, char>, start: &Ix) -> HashSet<Ix> {
+fn next_visits(height_map: &HashMap<Ix, char>, start: &(Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
     [(0, 1), (0, -1), (1, 0), (-1, 0)]
         .iter()
         .filter_map(|(x, y)| {
-            let next = (x + start.0, y + start.1);
-            let start_c = height_map.get(start)?;
+            let next = (x + start.0.0, y + start.0.1);
+            let start_c = height_map.get(&start.0)?;
             let next_c = height_map.get(&next)?;
+            // dbg!(&results.len());
             if start_c.to_digit(36).unwrap() + 1 >= next_c.to_digit(36).unwrap() {
-                Some(next)
+                if let Some(n) = results.get(&next) {
+                    if start.1 + 1 < *n {
+                        results.insert(next, start.1 + 1);
+                        Some((next, start.1 + 1))
+                    } else {
+                        None
+                    }
+                } else {
+                    results.insert(next, start.1 + 1);
+                    Some((next, start.1 + 1))
+                }
             } else {
                 None
             }
@@ -39,17 +31,26 @@ fn next_visits(height_map: &HashMap<Ix, char>, start: &Ix) -> HashSet<Ix> {
         .collect()
 }
 
-fn next_visits2(height_map: &HashMap<Ix, char>, start: &Ix) -> HashSet<Ix> {
-    // let mut adjacent: HashSet<Ix> = 
+fn next_visits2(height_map: &HashMap<Ix, char>, start: &(Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
     [(0, 1), (0, -1), (1, 0), (-1, 0)]
         .iter()
         .filter_map(|(x, y)| {
-            let next = (x + start.0, y + start.1);
-            let start_c = height_map.get(start)?;
+            let next = (x + start.0.0, y + start.0.1);
+            let start_c = height_map.get(&start.0)?;
             let next_c = height_map.get(&next)?;
-            // if dbg!(start_c.to_digit(36).unwrap() + 1) >= dbg!(next_c.to_digit(36).unwrap()) {
+            // dbg!(&results.len());
             if start_c.to_digit(36).unwrap() <= next_c.to_digit(36).unwrap() + 1 {
-                Some(next)
+                if let Some(n) = results.get(&next) {
+                    if start.1 + 1 < *n {
+                        results.insert(next, start.1 + 1);
+                        Some((next, start.1 + 1))
+                    } else {
+                        None
+                    }
+                } else {
+                    results.insert(next, start.1 + 1);
+                    Some((next, start.1 + 1))
+                }
             } else {
                 None
             }
@@ -60,13 +61,13 @@ fn next_visits2(height_map: &HashMap<Ix, char>, start: &Ix) -> HashSet<Ix> {
 pub fn run(input: usize) {
     let input = std::fs::read_to_string(format!("{}/input/input{:02}.txt", get_project_root().unwrap().to_str().unwrap(), input)).unwrap();
     let mut height_map: HashMap<Ix, char> = HashMap::new();
-    let mut starts = HashSet::new();
+    let mut starts = HashMap::new();
     let mut ends = HashSet::new();
     for (i, row) in input.lines().enumerate() {
         for (j, char) in row.chars().enumerate() {
             match char {
                 'S' => {
-                    starts.insert((j as isize, i as isize));
+                    starts.insert((j as isize, i as isize), 0);
                     height_map.insert((j as isize, i as isize), 'a');
                 },
                 'E' => {
@@ -79,8 +80,8 @@ pub fn run(input: usize) {
             }
         }
     }
-    let path_length = bfs(&mut starts, |x| ends.contains(x), |x| next_visits(&height_map, x));
-    println!("day12a: {}", path_length);
-    let path_length = bfs(&mut ends, |x| height_map.get(x) == Some(&'a'), |x| next_visits2(&height_map, x));
-    println!("day12b: {}", path_length);
+    let path = bfs(starts.clone(), |x| x.iter().any(|y| ends.contains(y.0)), |x, y| next_visits(&height_map, x, y));
+    println!("day12a: {}", path.values().max().unwrap());
+    let path = bfs(HashMap::from_iter(ends.into_iter().map(|x| (x, 0))), |x| x.iter().any(|y| height_map.get(y.0) == Some(&'a')), |x, y| next_visits2(&height_map, x, y));
+    println!("day12b: {}", path.values().max().unwrap());
 }
