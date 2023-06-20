@@ -1,21 +1,15 @@
 use project_root::get_project_root;
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Range};
 
 type Ix = (isize, isize);
 type Wall = HashSet<Ix>;
 
-fn drop_sand(wall: &mut Wall, start: &Ix, stop: impl Fn(&Ix) -> bool) -> usize {
+fn drop_sand(wall: &mut Wall, start: &Ix) -> usize {
     let mut sand_count = 0;
     let mut next_sand = *start;
     let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
     loop {
-        if next_sand.1 > maxy {
-            sand_count += 1;
-            wall.insert(next_sand);
-            if stop(&next_sand) { break; }
-            next_sand = *start;
-            continue;
-        } else if !wall.contains(&(next_sand.0, next_sand.1 + 1)) {
+        if !wall.contains(&(next_sand.0, next_sand.1 + 1)) {
             next_sand = (next_sand.0, next_sand.1 + 1);
         } else if !wall.contains(&(next_sand.0 - 1, next_sand.1 + 1)) {
             next_sand = (next_sand.0 - 1, next_sand.1 + 1);
@@ -24,15 +18,60 @@ fn drop_sand(wall: &mut Wall, start: &Ix, stop: impl Fn(&Ix) -> bool) -> usize {
         } else {
             sand_count += 1;
             wall.insert(next_sand);
-            if stop(&next_sand) { break; }
+            if next_sand.1 >= maxy { break; }
             next_sand = *start;
             continue;
         }
-        if stop(&next_sand) { break; }
+        if next_sand.1 >= maxy { break; }
     }
     // println!("{}", draw_wall(wall));
     sand_count
 }
+
+fn drop_sand3(wall: &mut Wall, start: &mut HashSet<isize>, init_y: isize) -> usize {
+    let mut sand_count = 0;
+    let mut next_start: HashSet<isize> = HashSet::new();
+    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+    for y in init_y..maxy + 2 {
+        for i in start.drain() {
+            sand_count += 1;
+            ((i - 1)..=(i + 1)).filter(|x| !wall.contains(&(*x, y + 1))).for_each(|x| {
+                next_start.insert(x);
+            });
+        }
+        start.extend(next_start.drain());
+    }
+    sand_count
+}
+
+// fn drop_sand2(wall: &mut Wall, start: &Ix) -> usize {
+//     let mut sand_count = 0;
+//     let mut next_sand = *start;
+//     let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
+//     loop {
+//         if next_sand.1 > maxy {
+//             sand_count += 1;
+//             wall.insert(next_sand);
+//             next_sand = *start;
+//             continue;
+//         } else if !wall.contains(&(next_sand.0, next_sand.1 + 1)) {
+//             next_sand = (next_sand.0, next_sand.1 + 1);
+//         } else if !wall.contains(&(next_sand.0 - 1, next_sand.1 + 1)) {
+//             next_sand = (next_sand.0 - 1, next_sand.1 + 1);
+//         } else if !wall.contains(&(next_sand.0 + 1, next_sand.1 + 1)) {
+//             next_sand = (next_sand.0 + 1, next_sand.1 + 1);
+//         } else {
+//             sand_count += 1;
+//             wall.insert(next_sand);
+//             if (500, 0) == next_sand { break; }
+//             next_sand = *start;
+//             continue;
+//         }
+//         if (500, 0) == next_sand { break; }
+//     }
+//     // println!("{}", draw_wall(wall));
+//     sand_count
+// }
 
 fn build_wall(wall: &mut Wall, instruction: &[Ix]) {
     let mut instruction = instruction.iter();
@@ -84,10 +123,11 @@ pub fn run(input: usize) {
     input.iter().for_each(|x| { build_wall(&mut wall, x); });
     // println!("{}", draw_wall(&wall));
     // dbg!(wall);
-    let maxy = wall.iter().max_by(|&a, &b| a.1.cmp(&b.1)).unwrap().1;
-    // dbg!(maxy);
-    let n = drop_sand(&mut wall.clone(), &(500, 0), |x| x.1 >= maxy);
+    let n = drop_sand(&mut wall.clone(), &(500, 0));
     println!("day14a: {}", n);
-    let n = drop_sand(&mut wall, &(500, 0), |x| x == &(500, 0));
+    let mut start = HashSet::from([500]);
+    // let n = drop_sand2(&mut wall.clone(), &(500, 0), );
+    // println!("day14b: {}", n);
+    let n = drop_sand3(&mut wall, &mut start, 0);
     println!("day14b: {}", n);
 }
