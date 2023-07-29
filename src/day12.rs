@@ -4,7 +4,7 @@ use aoc2022::bfs;
 
 type Ix = (isize, isize);
 
-fn next_visits(height_map: &HashMap<Ix, char>, start: &(Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
+fn next_visits(height_map: &HashMap<Ix, char>, start: (Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
     [(0, 1), (0, -1), (1, 0), (-1, 0)]
         .iter()
         .filter_map(|(x, y)| {
@@ -31,7 +31,7 @@ fn next_visits(height_map: &HashMap<Ix, char>, start: &(Ix, usize), results: &mu
         .collect()
 }
 
-fn next_visits2(height_map: &HashMap<Ix, char>, start: &(Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
+fn next_visits2(height_map: &HashMap<Ix, char>, start: (Ix, usize), results: &mut HashMap<Ix, usize>) -> HashMap<Ix, usize> {
     [(0, 1), (0, -1), (1, 0), (-1, 0)]
         .iter()
         .filter_map(|(x, y)| {

@@ -1,17 +1,57 @@
+use std::array::from_fn;
+use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 use std::ops::Range;
-use std::collections::{HashSet, HashMap};
 
-pub fn bfs<I: Eq + Hash + Clone, U: Copy + Eq + Hash>(
+pub fn reduce_sorted_range<E, I>(mut ranges: I) -> Vec<Range<E>>
+where
+    E: PartialEq + Eq + PartialOrd,
+    I: Iterator<Item = Range<E>>,
+{
+    let mut output = Vec::new();
+    let mut start: E;
+    let mut end: E;
+    if let Some(first) = ranges.next() {
+        start = first.start;
+        end = first.end;
+        for i in ranges {
+            if i.start > end {
+                output.push(start..end);
+                start = i.start;
+                end = i.end;
+            } else if i.end > end {
+                end = i.end;
+            }
+        }
+        output.push(start..end);
+    }
+    output
+}
+
+pub trait ZipWith<T, U, V> {
+    type Other1;
+    type Other2;
+    fn zip_with(self, func: impl FnMut(&T, &U) -> V, other: Self::Other1) -> Self::Other2;
+}
+
+impl<T, U, V, const N: usize> ZipWith<T, U, V> for [T; N] {
+    type Other1 = [U; N];
+    type Other2 = [V; N];
+    fn zip_with(self, mut func: impl FnMut(&T, &U) -> V, other: Self::Other1) -> Self::Other2 {
+        from_fn(|i| func(&self[i], &other[i]))
+    }
+}
+
+pub fn bfs<I: Eq + Hash + Clone, U: Clone + Eq + Hash>(
     mut starts: HashMap<I, U>,
-    ends: impl Fn(&HashMap<I, U>) -> bool, 
-    mut nexts: impl FnMut(&(I, U), &mut HashMap<I, U>) -> HashMap<I, U>,
+    ends: impl Fn(&HashMap<I, U>) -> bool,
+    nexts: impl Fn((I, U), &mut HashMap<I, U>) -> HashMap<I, U>,
 ) -> HashMap<I, U> {
     let mut results = HashMap::from_iter(starts.clone().into_iter());
     let mut next_starts = HashMap::new();
     while !ends(&starts) {
         for i in starts.drain() {
-            next_starts.extend(nexts(&i, &mut results));
+            next_starts.extend(nexts(i, &mut results));
         }
         starts.extend(next_starts.drain());
     }
@@ -19,13 +59,19 @@ pub fn bfs<I: Eq + Hash + Clone, U: Copy + Eq + Hash>(
 }
 
 pub trait EucVec {
-    fn overlap(&self, other: &Self) -> Option<Self> where Self: Sized;
-    fn subtract(&self, other: &Self) -> HashSet<Self> where Self: Sized + Hash;
-    fn union(&self, other: &Self) -> HashSet<Self> where Self: Sized + Hash;
+    fn overlap(&self, other: &Self) -> Option<Self>
+    where
+        Self: Sized;
+    fn subtract(&self, other: &Self) -> HashSet<Self>
+    where
+        Self: Sized + Hash;
+    fn union(&self, other: &Self) -> HashSet<Self>
+    where
+        Self: Sized + Hash;
 }
 
 impl<Idx: Copy + Ord + Hash, const N: usize> EucVec for [Range<Idx>; N] {
-    fn overlap(&self, other: &Self) -> Option<Self>  {
+    fn overlap(&self, other: &Self) -> Option<Self> {
         let zipper = self.iter().zip(other);
         let mut output: [Range<Idx>; N] = self.clone();
         for (i, (a, b)) in zipper.enumerate() {
@@ -74,117 +120,6 @@ impl<Idx: Copy + Ord + Hash, const N: usize> EucVec for [Range<Idx>; N] {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_overlap() {
-        assert_eq!(None, [-2..2].overlap(&[2..3]));
-        assert_eq!(None, [3..4].overlap(&[-2..2]));
-        assert_eq!(Some([3..4]), [-2..15].overlap(&[3..4]));
-        assert_eq!(Some([3..15]), [-2..15].overlap(&[3..19]));
-        assert_eq!(Some([-2..10]), [-2..15].overlap(&[-5..10]));
-        assert_eq!(Some([-2..10, -56..-40]), [-2..15, -56..-10].overlap(&[-5..10, -76..-40]));
-        assert_eq!(Some([-2..10, -56..-40, 1000..1001]), [-2..15, -56..-10, 1000..1001].overlap(&[-5..10, -76..-40, 0..10000]));
-        assert_eq!(None, [-2..15, -56..-10, 1000..1001].overlap(&[-5..-2, -76..-40, 0..10000]));
-        assert_eq!(None, [-2..15, -56..-10, 1000..1001].overlap(&[-5..20, -76..-56, 0..10000]));
-        assert_eq!(None, [-2..15, -56..-10, -1003..-1001].overlap(&[-5..20, -76..-40, 0..10000]));
-    }
-
-    #[test]
-    fn test_subtract() {
-        assert_eq!(HashSet::from([[-5..-3]]), [-5..1].subtract(&[-3..3]));
-        assert_eq!(HashSet::from([[-1..1]]), [-5..1].subtract(&[-6..-1]));
-        assert_eq!(HashSet::from([[-5..-3], [1..16]]), [-5..16].subtract(&[-3..1]));
-        assert_eq!(HashSet::from([]), [-2..1].subtract(&[-3..1]));
-        assert_eq!(HashSet::from([[-2..2]]), [-2..2].subtract(&[3..5]));
-        assert_eq!(HashSet::from([[-2..2, -2..2]]), [-2..2, -2..2].subtract(&[3..5, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..-1, -2..2],
-            [-1..1, 1..2, -2..2],
-            [-1..1, -1..1, -2..-1],
-            [-1..1, -1..1, 1..2]
-        ]), [-2..2, -2..2, -2..2].subtract(&[-1..1, -1..1, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..-1, -2..2],
-            [-1..1, -1..2, -2..-1],
-            [-1..1, -1..2, 1..2],
-        ]), [-2..2, -2..2, -2..2].subtract(&[-1..1, -1..3, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..2, -2..-1],
-            [-1..1, -2..2, 1..2],
-        ]), [-2..2, -2..2, -2..2].subtract(&[-1..1, -3..3, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..2, 1..2],
-        ]), [-2..2, -2..2, -2..2].subtract(&[-1..1, -3..3, -3..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [-1..2, -2..2, 1..2],
-        ]), [-2..2, -2..2, -2..2].subtract(&[-1..3, -3..3, -3..1]));
-        assert_eq!(HashSet::from([
-            [-2..2, -2..2, 1..2],
-        ]), [-2..2, -2..2, -2..2].subtract(&[-3..3, -3..3, -3..1]));
-        assert_eq!(HashSet::from([]), [-2..2, -2..2, -2..2].subtract(&[-3..3, -3..3, -3..3]));
-    }
-
-    #[test]
-    fn test_union() {
-        assert_eq!(HashSet::from([[-5..-3], [-3..3]]), [-5..1].union(&[-3..3]));
-        assert_eq!(HashSet::from([[-1..1], [-6..-1]]), [-5..1].union(&[-6..-1]));
-        assert_eq!(HashSet::from([[-5..-3], [1..16], [-3..1]]), [-5..16].union(&[-3..1]));
-        assert_eq!(HashSet::from([[-3..1]]), [-2..1].union(&[-3..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..-1, -2..2],
-            [-1..1, 1..2, -2..2],
-            [-1..1, -1..1, -2..-1],
-            [-1..1, -1..1, 1..2],
-            [-1..1, -1..1, -1..1]
-        ]), [-2..2, -2..2, -2..2].union(&[-1..1, -1..1, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..-1, -2..2],
-            [-1..1, -1..2, -2..-1],
-            [-1..1, -1..2, 1..2],
-            [-1..1, -1..3, -1..1]
-        ]), [-2..2, -2..2, -2..2].union(&[-1..1, -1..3, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..2, -2..-1],
-            [-1..1, -2..2, 1..2],
-            [-1..1, -3..3, -1..1]
-        ]), [-2..2, -2..2, -2..2].union(&[-1..1, -3..3, -1..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [1..2, -2..2, -2..2],
-            [-1..1, -2..2, 1..2],
-            [-1..1, -3..3, -3..1]
-        ]), [-2..2, -2..2, -2..2].union(&[-1..1, -3..3, -3..1]));
-        assert_eq!(HashSet::from([
-            [-2..-1, -2..2, -2..2],
-            [-1..2, -2..2, 1..2],
-            [-1..3, -3..3, -3..1],
-        ]), [-2..2, -2..2, -2..2].union(&[-1..3, -3..3, -3..1]));
-        assert_eq!(HashSet::from([
-            [-2..2, -2..2, 1..2],
-            [-3..3, -3..3, -3..1],
-        ]), [-2..2, -2..2, -2..2].union(&[-3..3, -3..3, -3..1]));
-        assert_eq!(HashSet::from([[-3..3, -3..3, -3..3]]), [-2..2, -2..2, -2..2].union(&[-3..3, -3..3, -3..3]));
-    }
-}
-
 pub trait Transpose {
     fn transpose(&mut self) -> Self;
 }
@@ -208,7 +143,9 @@ impl<T> Transpose for Vec<Vec<T>> {
 }
 
 pub fn zip_with<T, S, U, F>(a: Vec<T>, b: Vec<S>, f: F) -> Vec<U>
-    where F: Fn(T, S) -> U {
+where
+    F: Fn(T, S) -> U,
+{
     let a = a.into_iter();
     let mut b = b.into_iter();
     let mut c = Vec::new();
@@ -222,7 +159,10 @@ pub fn zip_with<T, S, U, F>(a: Vec<T>, b: Vec<S>, f: F) -> Vec<U>
     c
 }
 
-pub trait Enum where Self: Sized {
+pub trait Enum
+where
+    Self: Sized,
+{
     fn to_int(&self) -> isize;
     fn to_enum(n: isize) -> Self;
     fn succ(&self) -> Self {
@@ -278,3 +218,173 @@ impl Enum for Turn {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_overlap() {
+        assert_eq!(None, [-2..2].overlap(&[2..3]));
+        assert_eq!(None, [3..4].overlap(&[-2..2]));
+        assert_eq!(Some([3..4]), [-2..15].overlap(&[3..4]));
+        assert_eq!(Some([3..15]), [-2..15].overlap(&[3..19]));
+        assert_eq!(Some([-2..10]), [-2..15].overlap(&[-5..10]));
+        assert_eq!(
+            Some([-2..10, -56..-40]),
+            [-2..15, -56..-10].overlap(&[-5..10, -76..-40])
+        );
+        assert_eq!(
+            Some([-2..10, -56..-40, 1000..1001]),
+            [-2..15, -56..-10, 1000..1001].overlap(&[-5..10, -76..-40, 0..10000])
+        );
+        assert_eq!(
+            None,
+            [-2..15, -56..-10, 1000..1001].overlap(&[-5..-2, -76..-40, 0..10000])
+        );
+        assert_eq!(
+            None,
+            [-2..15, -56..-10, 1000..1001].overlap(&[-5..20, -76..-56, 0..10000])
+        );
+        assert_eq!(
+            None,
+            [-2..15, -56..-10, -1003..-1001].overlap(&[-5..20, -76..-40, 0..10000])
+        );
+    }
+
+    #[test]
+    fn test_subtract() {
+        assert_eq!(HashSet::from([[-5..-3]]), [-5..1].subtract(&[-3..3]));
+        assert_eq!(HashSet::from([[-1..1]]), [-5..1].subtract(&[-6..-1]));
+        assert_eq!(
+            HashSet::from([[-5..-3], [1..16]]),
+            [-5..16].subtract(&[-3..1])
+        );
+        assert_eq!(HashSet::from([]), [-2..1].subtract(&[-3..1]));
+        assert_eq!(HashSet::from([[-2..2]]), [-2..2].subtract(&[3..5]));
+        assert_eq!(
+            HashSet::from([[-2..2, -2..2]]),
+            [-2..2, -2..2].subtract(&[3..5, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..-1, -2..2],
+                [-1..1, 1..2, -2..2],
+                [-1..1, -1..1, -2..-1],
+                [-1..1, -1..1, 1..2]
+            ]),
+            [-2..2, -2..2, -2..2].subtract(&[-1..1, -1..1, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..-1, -2..2],
+                [-1..1, -1..2, -2..-1],
+                [-1..1, -1..2, 1..2],
+            ]),
+            [-2..2, -2..2, -2..2].subtract(&[-1..1, -1..3, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..2, -2..-1],
+                [-1..1, -2..2, 1..2],
+            ]),
+            [-2..2, -2..2, -2..2].subtract(&[-1..1, -3..3, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..2, 1..2],
+            ]),
+            [-2..2, -2..2, -2..2].subtract(&[-1..1, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([[-2..-1, -2..2, -2..2], [-1..2, -2..2, 1..2],]),
+            [-2..2, -2..2, -2..2].subtract(&[-1..3, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([[-2..2, -2..2, 1..2],]),
+            [-2..2, -2..2, -2..2].subtract(&[-3..3, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([]),
+            [-2..2, -2..2, -2..2].subtract(&[-3..3, -3..3, -3..3])
+        );
+    }
+
+    #[test]
+    fn test_union() {
+        assert_eq!(HashSet::from([[-5..-3], [-3..3]]), [-5..1].union(&[-3..3]));
+        assert_eq!(HashSet::from([[-1..1], [-6..-1]]), [-5..1].union(&[-6..-1]));
+        assert_eq!(
+            HashSet::from([[-5..-3], [1..16], [-3..1]]),
+            [-5..16].union(&[-3..1])
+        );
+        assert_eq!(HashSet::from([[-3..1]]), [-2..1].union(&[-3..1]));
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..-1, -2..2],
+                [-1..1, 1..2, -2..2],
+                [-1..1, -1..1, -2..-1],
+                [-1..1, -1..1, 1..2],
+                [-1..1, -1..1, -1..1]
+            ]),
+            [-2..2, -2..2, -2..2].union(&[-1..1, -1..1, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..-1, -2..2],
+                [-1..1, -1..2, -2..-1],
+                [-1..1, -1..2, 1..2],
+                [-1..1, -1..3, -1..1]
+            ]),
+            [-2..2, -2..2, -2..2].union(&[-1..1, -1..3, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..2, -2..-1],
+                [-1..1, -2..2, 1..2],
+                [-1..1, -3..3, -1..1]
+            ]),
+            [-2..2, -2..2, -2..2].union(&[-1..1, -3..3, -1..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [1..2, -2..2, -2..2],
+                [-1..1, -2..2, 1..2],
+                [-1..1, -3..3, -3..1]
+            ]),
+            [-2..2, -2..2, -2..2].union(&[-1..1, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([
+                [-2..-1, -2..2, -2..2],
+                [-1..2, -2..2, 1..2],
+                [-1..3, -3..3, -3..1],
+            ]),
+            [-2..2, -2..2, -2..2].union(&[-1..3, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([[-2..2, -2..2, 1..2], [-3..3, -3..3, -3..1],]),
+            [-2..2, -2..2, -2..2].union(&[-3..3, -3..3, -3..1])
+        );
+        assert_eq!(
+            HashSet::from([[-3..3, -3..3, -3..3]]),
+            [-2..2, -2..2, -2..2].union(&[-3..3, -3..3, -3..3])
+        );
+    }
+}
+

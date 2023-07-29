@@ -1,5 +1,5 @@
 use project_root::get_project_root;
-use std::{collections::HashSet, ops::Range};
+use std::collections::HashSet;
 
 type Ix = (isize, isize);
 type Wall = HashSet<Ix>;
