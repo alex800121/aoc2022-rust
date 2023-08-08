@@ -1,7 +1,19 @@
 use std::array::from_fn;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeMap};
 use std::hash::Hash;
 use std::ops::Range;
+
+pub fn build_map<H: Iterator<Item = I>, I: Iterator<Item = J>, J, K: Ord, E>(input: H, to_key: impl Fn((usize, usize)) -> K, to_elem: impl Fn(J) -> Option<E>) -> BTreeMap<K, E> {
+    let mut output = BTreeMap::new();
+    for (i, row) in input.enumerate() {
+        for (j, e) in row.enumerate() {
+            if let Some(e) = to_elem(e) {
+                output.insert(to_key((j, i)), e);
+            }
+        }
+    }
+    output
+}
 
 pub fn reduce_sorted_range<E, I>(mut ranges: I) -> Vec<Range<E>>
 where
@@ -173,6 +185,7 @@ where
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Direction {
     North,
     East,
@@ -199,6 +212,7 @@ impl Enum for Direction {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Turn {
     Right,
     Left,

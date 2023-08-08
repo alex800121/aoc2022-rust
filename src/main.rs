@@ -1,7 +1,7 @@
 use aoc_macro::*;
 
-import_day!(1-21);
+import_day!(1-22);
 
 fn main() {
-    run_day!(1-21);
+    run_day!(1-22);
 }
