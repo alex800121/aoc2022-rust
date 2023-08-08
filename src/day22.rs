@@ -1,17 +1,19 @@
 use aoc2022::{
     build_map,
     Direction::{self, *},
-    Enum,
+    Enum, ZipWith,
 };
 use nom::AsChar;
 use num::Integer;
 use project_root::get_project_root;
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, array::from_fn};
 
 type Index = (isize, isize);
 type IndexPlus = (Index, Index);
 type CubeMap = BTreeMap<Index, bool>;
 type CubeMapPlus = BTreeMap<IndexPlus, bool>;
+type RawCubeSide = BTreeMap<Index, [Option<(Index, Direction)>; 4]>;
+type CubeSide = BTreeMap<Index, [(Index, Direction); 4]>;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 enum Instruction {
@@ -60,6 +62,21 @@ impl Bot<Index> {
 
 impl Bot<IndexPlus> {
     fn next(&mut self, map: &CubeMapPlus, instruction: &Instruction) {}
+}
+
+fn fold_cube_side(mut raw_cube_side: RawCubeSide) -> Option<RawCubeSide> {
+    let sides: Vec<_> = raw_cube_side.keys().copied().collect();
+    let adjacent = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+    for side in sides.iter() {
+        for (direction, index) in adjacent.iter().enumerate() {
+            let to_direction = (side.0 + index.0, side.1 + index.1);
+            if sides.contains(&to_direction) {
+                let t = raw_cube_side.get_mut(side)?;
+                t[direction] = Some((to_direction, Enum::to_enum(direction as isize)));
+            }
+        }
+    }
+    Some(raw_cube_side)
 }
 
 pub fn run(input: usize) {
@@ -121,6 +138,7 @@ pub fn run(input: usize) {
                     _ => None,
                 },
             );
+            let raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
             Some((map1, map2, i))
         })
         .unwrap();
