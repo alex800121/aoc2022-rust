@@ -61,27 +61,58 @@ impl Bot<Index> {
 }
 
 impl Bot<IndexPlus> {
-    fn next(&mut self, map: &CubeMapPlus, instruction: &Instruction) {}
+    fn next(&mut self, map: &CubeMapPlus, cube_side: &CubeSide, instruction: &Instruction) {
+    }
 }
 
-fn fold_cube_side(mut raw_cube_side: RawCubeSide) -> Option<RawCubeSide> {
+fn fold_cube_side(mut raw_cube_side: RawCubeSide) -> CubeSide {
     let sides: Vec<_> = raw_cube_side.keys().copied().collect();
     let adjacent = [(0, -1), (1, 0), (0, 1), (-1, 0)];
     for side in sides.iter() {
         for (direction, index) in adjacent.iter().enumerate() {
             let to_direction = (side.0 + index.0, side.1 + index.1);
             if sides.contains(&to_direction) {
-                let t = raw_cube_side.get_mut(side)?;
+                let t = raw_cube_side.get_mut(side).unwrap();
                 t[direction] = Some((to_direction, Enum::to_enum(direction as isize)));
             }
         }
     }
-    Some(raw_cube_side)
+    while raw_cube_side.values().any(|x| x.iter().any(|y| y.is_none())) {
+        for side in sides.iter() {
+            'inner: for direction1 in 0..4usize {
+                let direction2 = (direction1 + 1).rem_euclid(4);
+                let center = raw_cube_side.get(side).unwrap();
+                match (center[direction1], center[direction2]) {
+                    (Some((i1, d1)), Some((i2, d2))) => {
+                        let s1 = raw_cube_side.get_mut(&i1).unwrap();
+                        s1[(d1.to_int() + 1).rem_euclid(4) as usize] = Some((i2, Enum::to_enum((d2.to_int() + 1).rem_euclid(4))));
+                        let s2 = raw_cube_side.get_mut(&i2).unwrap();
+                        s2[(d2.to_int() - 1).rem_euclid(4) as usize] = Some((i1, Enum::to_enum((d1.to_int() - 1).rem_euclid(4))));
+                    },
+                    _ => { continue 'inner; },
+                }
+            }
+        }
+    }
+    let mut cube_side: CubeSide = BTreeMap::new();
+    for (k, e) in raw_cube_side.into_iter() {
+        let mut v = Vec::new();
+        for i in e {
+            v.push(i.unwrap());
+        }
+        let v = v.try_into().ok().unwrap();
+        cube_side.insert(k, v);
+    }
+    cube_side
+}
+
+fn cross_side(index: IndexPlus, from: Direction, to: Direction, cubd_side: &CubeSide, map: &CubeMapPlus) -> IndexPlus {
+    todo!()
 }
 
 pub fn run(input: usize) {
     use Instruction::*;
-    let (map1, map2, instructions): (CubeMap, CubeMapPlus, Vec<Instruction>) =
+    let (map1, map2, cube_side, instructions): (CubeMap, CubeMapPlus, CubeSide, Vec<Instruction>) =
         std::fs::read_to_string(format!(
             "{}/input/test{:02}.txt",
             // "{}/input/input{:02}.txt",
@@ -138,8 +169,9 @@ pub fn run(input: usize) {
                     _ => None,
                 },
             );
-            let raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
-            Some((map1, map2, i))
+            let mut raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
+            let cube_side = fold_cube_side(raw_cube_side);
+            Some((map1, map2, cube_side, i))
         })
         .unwrap();
     let mut init_bot1: Bot<Index> = Bot {
