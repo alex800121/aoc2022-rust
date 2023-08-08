@@ -15,6 +15,18 @@ pub fn build_map<H: Iterator<Item = I>, I: Iterator<Item = J>, J, K: Ord, E>(inp
     output
 }
 
+pub trait Flippable {
+    type Flipped;
+    fn flip(self) -> Self::Flipped;
+}
+
+impl<T, U> Flippable for (T, U) {
+    type Flipped = (U, T);
+    fn flip(self) -> Self::Flipped {
+        (self.1, self.0)
+    }
+}
+
 pub fn reduce_sorted_range<E, I>(mut ranges: I) -> Vec<Range<E>>
 where
     E: PartialEq + Eq + PartialOrd,

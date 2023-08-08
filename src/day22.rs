@@ -1,12 +1,12 @@
 use aoc2022::{
     build_map,
     Direction::{self, *},
-    Enum, ZipWith,
+    Enum,
 };
 use nom::AsChar;
 use num::Integer;
 use project_root::get_project_root;
-use std::{collections::BTreeMap, array::from_fn};
+use std::collections::BTreeMap;
 
 type Index = (isize, isize);
 type IndexPlus = (Index, Index);
@@ -61,7 +61,40 @@ impl Bot<Index> {
 }
 
 impl Bot<IndexPlus> {
-    fn next(&mut self, map: &CubeMapPlus, cube_side: &CubeSide, instruction: &Instruction) {
+    fn next(&mut self, map: &CubeMapPlus, cube_side: &CubeSide, len: usize, instruction: &Instruction) {
+        use Instruction::*;
+        match instruction {
+            Right => {
+                self.direction = self.direction.succ();
+            }
+            Left => {
+                self.direction = self.direction.pred();
+            }
+            Forward(i) => {
+                let move_to = |(s, (x, y)): IndexPlus, d: Direction| {
+                    match d {
+                        North => ((s, (x, y - 1)), cross_side((s, (x, y)), d, cube_side, len)),
+                        East => ((s, (x + 1, y)), cross_side((s, (x, y)), d, cube_side, len)),
+                        South => ((s, (x, y + 1)), cross_side((s, (x, y)), d, cube_side, len)),
+                        West => ((s, (x - 1, y)), cross_side((s, (x, y)), d, cube_side, len)),
+                    }
+                };
+                for _ in 0..*i {
+                    let (next1, (next2, to)) = move_to(self.position, self.direction);
+                    match (map.get(&next1), map.get(&next2)) {
+                        (Some(true), _) => { 
+                            self.position = next1;
+                        },
+                        (None, Some(true)) => { 
+                            self.position = next2;
+                            self.direction = to;
+                        },
+                        _ => { break; },
+                    }
+                }
+            }
+        }
+
     }
 }
 
@@ -106,16 +139,32 @@ fn fold_cube_side(mut raw_cube_side: RawCubeSide) -> CubeSide {
     cube_side
 }
 
-fn cross_side(index: IndexPlus, from: Direction, to: Direction, cubd_side: &CubeSide, map: &CubeMapPlus) -> IndexPlus {
-    todo!()
+fn cross_side(index: IndexPlus, from: Direction, cube_side: &CubeSide, len: usize) -> (IndexPlus, Direction) {
+    let len = len as isize;
+    let (next_side, to) = cube_side.get(&index.0).unwrap()[from.to_int() as usize];
+    let next_index = match (from, to) {
+        (East, West) | (West, East) | (North, North) | (South, South) => {
+            (index.1.0, len - 1 - index.1.1)
+        },
+        (North, South) | (South, North) | (East, East) | (West, West) => {
+            (len - 1 - index.1.0, index.1.1)
+        },
+        (North, East) | (East, North) | (South, West) | (West, South) => {
+            (index.1.1, index.1.0)
+        },
+        (North, West) | (West, North) | (South, East) | (East, South) => {
+            (len - 1 - index.1.1, len - 1 - index.1.0)
+        },
+    };
+    ((next_side, next_index), to)
 }
 
 pub fn run(input: usize) {
     use Instruction::*;
-    let (map1, map2, cube_side, instructions): (CubeMap, CubeMapPlus, CubeSide, Vec<Instruction>) =
+    let (map1, map2, cube_side, len, instructions): (CubeMap, CubeMapPlus, CubeSide, usize, Vec<Instruction>) =
         std::fs::read_to_string(format!(
-            "{}/input/test{:02}.txt",
-            // "{}/input/input{:02}.txt",
+            // "{}/input/test{:02}.txt",
+            "{}/input/input{:02}.txt",
             get_project_root().unwrap().to_str().unwrap(),
             input
         ))
@@ -169,9 +218,9 @@ pub fn run(input: usize) {
                     _ => None,
                 },
             );
-            let mut raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
+            let raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
             let cube_side = fold_cube_side(raw_cube_side);
-            Some((map1, map2, cube_side, i))
+            Some((map1, map2, cube_side, side, i))
         })
         .unwrap();
     let mut init_bot1: Bot<Index> = Bot {
@@ -181,8 +230,8 @@ pub fn run(input: usize) {
             .unwrap(),
         direction: East,
     };
-    let mut init_bot2 = Bot {
-        position: map2
+    let mut init_bot2: Bot<IndexPlus> = Bot {
+        position: *map2
             .keys()
             .min_by(|x, y| {
                 x.0 .1
@@ -198,4 +247,12 @@ pub fn run(input: usize) {
         init_bot1.next(&map1, i);
     }
     println!("day22a: {}", (init_bot1.position.1 + 1) * 1000 + (init_bot1.position.0 + 1) * 4 + (init_bot1.direction.to_int() - 1).rem_euclid(4));
+    for i in instructions.iter() {
+        init_bot2.next(&map2, &cube_side, len, i);
+    }
+    let final_position = (
+        init_bot2.position.0.0 * len as isize + init_bot2.position.1.0,
+        init_bot2.position.0.1 * len as isize + init_bot2.position.1.1,
+    );
+    println!("day22b: {}", (final_position.1 + 1) * 1000 + (final_position.0 + 1) * 4 + (init_bot2.direction.to_int() - 1).rem_euclid(4));
 }
