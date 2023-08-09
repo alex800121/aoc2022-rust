@@ -55,14 +55,28 @@ where
 pub trait ZipWith<T, U, V> {
     type Other1;
     type Other2;
-    fn zip_with(self, func: impl FnMut(&T, &U) -> V, other: Self::Other1) -> Self::Other2;
+    fn zip_with(self, func: impl Fn(&T, &U) -> V, other: Self::Other1) -> Self::Other2;
 }
 
 impl<T, U, V, const N: usize> ZipWith<T, U, V> for [T; N] {
     type Other1 = [U; N];
     type Other2 = [V; N];
-    fn zip_with(self, mut func: impl FnMut(&T, &U) -> V, other: Self::Other1) -> Self::Other2 {
+    fn zip_with(self, func: impl Fn(&T, &U) -> V, other: Self::Other1) -> Self::Other2 {
         from_fn(|i| func(&self[i], &other[i]))
+    }
+}
+
+impl<T, U, V> ZipWith<T, U, V> for Vec<T> {
+    type Other1 = Vec<U>;
+    type Other2 = Vec<V>;
+    fn zip_with(self, func: impl Fn(&T, &U) -> V, other: Self::Other1) -> Self::Other2 {
+        let mut output = Vec::new();
+        let mut a = self.iter();
+        let mut b = other.iter();
+        while let (Some(x), Some(y)) = (a.next(), b.next()) {
+            output.push(func(x, y));
+        }
+        output
     }
 }
 
