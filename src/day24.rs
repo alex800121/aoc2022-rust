@@ -1,9 +1,6 @@
-use aoc2022::{build_map, print_map};
+use aoc2022::build_map;
 use project_root::get_project_root;
-use std::{
-    array::from_fn,
-    collections::{BTreeMap, BTreeSet},
-};
+use std::collections::BTreeSet;
 
 type Index = (isize, isize);
 const ADJACENT: [Index; 5] = [(0, -1), (-1, 0), (0, 0), (1, 0), (0, 1)];
