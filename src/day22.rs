@@ -197,26 +197,25 @@ pub fn run(input: usize) {
             let side = height.gcd(&width);
             let map1 = build_map(
                 map.iter().map(|x| x.chars()),
-                |(x, y)| (x as isize, y as isize),
-                |c| match c {
-                    '.' => Some(true),
-                    '#' => Some(false),
-                    _ => None,
+                |(x, y), c| match c {
+                    '.' => Some(((x as isize, y as isize), true)).into_iter(),
+                    '#' => Some(((x as isize, y as isize), false)).into_iter(),
+                    _ => None.into_iter(),
                 },
             );
             let map2 = build_map(
                 map.iter().map(|x| x.chars()),
-                |(x, y)| {
-                    (
+                |(x, y), c| { 
+                    let key = (
                         ((x / side) as isize, (y / side) as isize),
-                        ((x % side) as isize, (y % side) as isize),
-                    )
-                },
-                |c| match c {
-                    '.' => Some(true),
-                    '#' => Some(false),
-                    _ => None,
-                },
+                        ((x % side) as isize, (y % side) as isize)
+                    );
+                    match c {
+                        '.' => Some((key, true)).into_iter(),
+                        '#' => Some((key, false)).into_iter(),
+                        _ => None.into_iter(),
+                    }
+                }
             );
             let raw_cube_side: RawCubeSide = BTreeMap::from_iter(map2.keys().map(|x| (x.0, [None; 4])));
             let cube_side = fold_cube_side(raw_cube_side);

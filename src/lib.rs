@@ -3,12 +3,14 @@ use std::collections::{HashMap, HashSet, BTreeMap};
 use std::hash::Hash;
 use std::ops::Range;
 
-pub fn build_map<H: Iterator<Item = I>, I: Iterator<Item = J>, J, K: Ord, E>(input: H, to_key: impl Fn((usize, usize)) -> K, to_elem: impl Fn(J) -> Option<E>) -> BTreeMap<K, E> {
+pub fn build_map
+<H: Iterator<Item = I>, I: Iterator<Item = J>, J, K: Ord, E, O: Iterator<Item = (K, E)>>
+(input: H, to_key_elem: impl Fn((usize, usize), J) -> O) -> BTreeMap<K, E> {
     let mut output = BTreeMap::new();
     for (i, row) in input.enumerate() {
         for (j, e) in row.enumerate() {
-            if let Some(e) = to_elem(e) {
-                output.insert(to_key((j, i)), e);
+            for (key, element) in to_key_elem((j, i), e) {
+                output.insert(key, element);
             }
         }
     }
