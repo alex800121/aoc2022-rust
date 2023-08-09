@@ -3,6 +3,21 @@ use std::collections::{HashMap, HashSet, BTreeMap};
 use std::hash::Hash;
 use std::ops::Range;
 
+pub fn print_map<E>(map: &BTreeMap<(isize, isize), E>, to_char: impl Fn(Option<&E>) -> char) -> String {
+    let min_x = map.keys().min_by(|x, y| x.0.cmp(&y.0)).unwrap().0;
+    let max_x = map.keys().max_by(|x, y| x.0.cmp(&y.0)).unwrap().0;
+    let min_y = map.keys().min_by(|x, y| x.1.cmp(&y.1)).unwrap().1;
+    let max_y = map.keys().max_by(|x, y| x.1.cmp(&y.1)).unwrap().1;
+    let mut output = String::new();
+    for y in min_y..=max_y {
+        for x in min_x..=max_x {
+            output.push(to_char(map.get(&(x, y))));
+        }
+        output.push('\n');
+    }
+    output
+}
+
 pub fn build_map
 <H: Iterator<Item = I>, I: Iterator<Item = J>, J, K: Ord, E, O: Iterator<Item = (K, E)>>
 (input: H, to_key_elem: impl Fn((usize, usize), J) -> O) -> BTreeMap<K, E> {
